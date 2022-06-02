@@ -258,8 +258,8 @@ namespace SvgConverter
                     
                     brushAttribute.Value = key switch
                     {
-                        "border" => $"{{Binding CustomBorderBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, FallbackValue={color}}}",
-                        "custom" => $"{{Binding CustomBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, FallbackValue={color}}}",
+                        "border" => $"{{Binding CustomBorderBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
+                        "custom" => $"{{Binding CustomBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
                         _ => brushAttribute.Value
                     };
                 }
