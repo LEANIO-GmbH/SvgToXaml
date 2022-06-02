@@ -18,8 +18,8 @@ namespace SvgConverter
             string outputname,
             [ArgumentParam(DefaultValue = null, ExplicitNeeded = false, LongDesc = "folder for the xaml-Output, optional, default: folder of svgs")]
             string outputdir = null,
-            [ArgumentParam(LongDesc = "Builds a htmlfile to browse the svgs, optional, default true")]
-            bool buildhtmlfile = true,
+            [ArgumentParam(ExplicitNeeded = false, LongDesc = "Builds a htmlfile to browse the svgs, optional, default false")]
+            bool buildhtmlfile = false,
             [ArgumentParam(DefaultValue = null, ExplicitNeeded = false, LongDesc = "Prefix to name all items of this file, optional, default: no prefix")]
             string nameprefix = null,
             [ArgumentParam(DefaultValue = false, ExplicitNeeded = false, LongDesc = "If true, es explicit ResourceKey File is created, default: false", ExplicitWantedArguments = "resKeyNS,resKeyNSName")]
