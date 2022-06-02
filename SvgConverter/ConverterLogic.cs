@@ -322,7 +322,10 @@ namespace SvgConverter
 
                 foreach (var child in current.Children)
                     if (child is GeometryDrawing { Brush: SolidColorBrush solidColorBrush } drawing)
-                        drawing.SetValue(GeometryDrawing.BrushProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(solidColorBrush.ToString())!));
+                    {
+                        var c = new Color() { A = (byte)(solidColorBrush.Opacity * 255D), R = solidColorBrush.Color.R, G = solidColorBrush.Color.G, B = solidColorBrush.Color.B };
+                        drawing.SetValue(GeometryDrawing.BrushProperty, new SolidColorBrush(c));
+                    }
 
                 drawingGroups.Remove(current);
             }
