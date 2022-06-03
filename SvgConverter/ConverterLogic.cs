@@ -125,7 +125,7 @@ namespace SvgConverter
 
                     if (property.Value == "GeometryData")
                     {
-                        var groups = setter.Elements().First().FirstNode.XPathSelectElements("defns:DrawingGroup", ConverterLogic.NsManager);
+                        var groups = setter.Descendants(NsDef + "DrawingGroup");
                         foreach (var drawingGroup in groups)
                         {
                             BeautifyDrawingElement(drawingGroup, null);
@@ -244,25 +244,20 @@ namespace SvgConverter
 
         private static void ReplaceBrushesInDrawingGroups(XElement rootElement)
         {
-            //building local Elements
-            var drawingGroups = rootElement.Elements(NsDef + "DrawingGroup").ToList();
-            foreach (var node in drawingGroups)
+            var key = rootElement.Attribute(ConverterLogic.Nsx + "Name")?.Value.ToLower();
+
+            var brushAttributes = CollectBrushAttributesWithColor(rootElement).ToList();
+
+            foreach (var brushAttribute in brushAttributes)
             {
-                var key = node.Attribute(ConverterLogic.Nsx + "Name")?.Value.ToLower();
+                var color = brushAttribute.Value;
 
-                var brushAttributes = CollectBrushAttributesWithColor(node).ToList();
-
-                foreach (var brushAttribute in brushAttributes)
+                brushAttribute.Value = key switch
                 {
-                    var color = brushAttribute.Value;
-                    
-                    brushAttribute.Value = key switch
-                    {
-                        "border" => $"{{Binding CustomBorderBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
-                        "custom" => $"{{Binding CustomBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
-                        _ => brushAttribute.Value
-                    };
-                }
+                    "border" => $"{{Binding CustomBorderBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
+                    "custom" => $"{{Binding CustomBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
+                    _ => brushAttribute.Value
+                };
             }
 
         }
@@ -299,6 +294,7 @@ namespace SvgConverter
             {
                 var drawingGroup = ConvertFileToDrawingGroup(file, wpfDrawingSettings);
 
+                AddBorder(drawingGroup);
                 CleanUpSolidColorBrushes(drawingGroup);
 
                 // Zu LeanioIcon Style machen:
@@ -312,6 +308,58 @@ namespace SvgConverter
             return dict;
         }
 
+        private static void AddBorder(DrawingGroup drawingGroup)
+        {
+            var geometry = new PathGeometry();
+
+            var drawingGroups = new List<DrawingGroup> { drawingGroup.Clone() };
+            while (drawingGroups.Any())
+            {
+                var current = drawingGroups.First();
+
+                if(current.GetValue(FrameworkElement.NameProperty).ToString().ToLower() == "border")
+                    return;
+
+                foreach (var child in current.Children)
+                {
+                    switch (child)
+                    {
+                        case GeometryDrawing drawing:
+                            var geo = drawing.Geometry;
+                            geo.Transform = current.Transform?.Clone();
+                            geometry = Geometry.Combine(geometry, geo, GeometryCombineMode.Union, null);
+                            break;
+
+                        case DrawingGroup dg:
+                            dg.Transform = new MatrixTransform(dg.Transform?.Value ?? Matrix.Identity * current.Transform?.Value ?? Matrix.Identity);
+                            drawingGroups.Add(dg);
+                            break;
+                    }
+                }
+
+                current.Transform = null;
+                drawingGroups.Remove(current);
+            }
+
+            var border = new GeometryDrawing(null, new (Brushes.White, Math.Max(geometry.Bounds.Size.Width, geometry.Bounds.Size.Height) / 16D), geometry);
+
+            if (!drawingGroup.Bounds.Contains(border.Bounds))
+            {
+                var max = Math.Max(border.Bounds.Width, border.Bounds.Height);
+
+                var bufferX = max - border.Bounds.Width;
+                var bufferY = max - border.Bounds.Height;
+
+                drawingGroup.Children.Insert(0, new GeometryDrawing(Brushes.Transparent, null, PathGeometry.CreateFromGeometry(new RectangleGeometry(new(border.Bounds.Location - new Vector(bufferX / 2, bufferY / 2), new Size(max, max))))));
+            }
+
+            var borderGroup = new DrawingGroup();
+            borderGroup.SetValue(FrameworkElement.NameProperty, "Border");
+            borderGroup.Children.Insert(0, border);
+
+            drawingGroup.Children.Insert(0, borderGroup);
+        }
+
         private static void CleanUpSolidColorBrushes(DrawingGroup drawingGroup)
         {
             var drawingGroups = new List<DrawingGroup> { drawingGroup };
@@ -323,7 +371,7 @@ namespace SvgConverter
                 foreach (var child in current.Children)
                     if (child is GeometryDrawing { Brush: SolidColorBrush solidColorBrush } drawing)
                     {
-                        var c = new Color() { A = (byte)(solidColorBrush.Opacity * 255D), R = solidColorBrush.Color.R, G = solidColorBrush.Color.G, B = solidColorBrush.Color.B };
+                        var c = new Color() { A = (byte)(solidColorBrush.Opacity * solidColorBrush.Color.A), R = solidColorBrush.Color.R, G = solidColorBrush.Color.G, B = solidColorBrush.Color.B };
                         drawing.SetValue(GeometryDrawing.BrushProperty, new SolidColorBrush(c));
                     }
 
@@ -335,6 +383,7 @@ namespace SvgConverter
         {
             var dg = SvgFileToWpfObject(filepath, wpfDrawingSettings);
             SetSizeToGeometries(dg);
+
             //RemoveObjectNames(dg);
             return dg;
         }
