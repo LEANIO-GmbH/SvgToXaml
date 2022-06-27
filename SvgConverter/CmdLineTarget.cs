@@ -31,8 +31,10 @@ namespace SvgConverter
             [ArgumentParam(DefaultValue = false, ExplicitNeeded = false, LongDesc = "If true, PixelsPerDip is filtered to ensure compatibility for < 4.6.2, default: false")]
             bool filterPixelsPerDip = false,
             [ArgumentParam(DefaultValue = false, ExplicitNeeded = false, LongDesc = "Recursive goes through inputdir subfolders")]
-            bool handleSubFolders = false
-            )
+            bool handleSubFolders = false,
+            [ArgumentParam(Aliases = "b", DefaultValue = 1D, ExplicitNeeded = false, LongDesc = "Sets the border size factor")]
+            double borderSizeFactor = 1D
+        )
         {
             Console.WriteLine("Building resource dictionary...");
             var outFileName = Path.Combine(outputdir ?? inputdir, outputname);
@@ -49,7 +51,7 @@ namespace SvgConverter
                 NameSpaceName = compResKeyNSName,
             };
 
-            File.WriteAllText(outFileName, ConverterLogic.SvgDirToXaml(inputdir, resKeyInfo, null, filterPixelsPerDip, handleSubFolders));
+            File.WriteAllText(outFileName, ConverterLogic.SvgDirToXaml(inputdir, resKeyInfo, null, filterPixelsPerDip, handleSubFolders, borderSizeFactor));
             Console.WriteLine("xaml written to: {0}", outFileName);
 
             if (buildhtmlfile)

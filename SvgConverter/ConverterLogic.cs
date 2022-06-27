@@ -97,14 +97,14 @@ namespace SvgConverter
         }
 
         public static string SvgDirToXaml(string folder, ResKeyInfo resKeyInfo, WpfDrawingSettings wpfDrawingSettings,
-            bool filterPixelsPerDip, bool handleSubFolders = false)
+            bool filterPixelsPerDip, bool handleSubFolders = false, double borderSizeFactor = 1)
         {
             //firstChar Upper
             var firstChar = char.ToUpperInvariant(resKeyInfo.XamlName[0]);
             resKeyInfo.XamlName = firstChar + resKeyInfo.XamlName.Remove(0, 1);
 
             var files = SvgFilesFromFolder(folder, handleSubFolders);
-            var dict = ConvertFilesToResourceDictionary(files, wpfDrawingSettings, resKeyInfo);
+            var dict = ConvertFilesToResourceDictionary(files, wpfDrawingSettings, resKeyInfo, borderSizeFactor);
             var xamlUntidy = WpfObjToXaml(dict, wpfDrawingSettings?.IncludeRuntime ?? false);
             
             var leanioIconResKey = new ResKeyInfo() { NameSpaceName = "leanio", UseComponentResKeys = true, NameSpace = "Leanio.WPF.ContentControls.LeanioIcon" };
@@ -287,14 +287,14 @@ namespace SvgConverter
             }
         }
 
-        internal static ResourceDictionary ConvertFilesToResourceDictionary(IEnumerable<string> files, WpfDrawingSettings wpfDrawingSettings, ResKeyInfo resKeyInfo)
+        internal static ResourceDictionary ConvertFilesToResourceDictionary(IEnumerable<string> files, WpfDrawingSettings wpfDrawingSettings, ResKeyInfo resKeyInfo, double borderSizeFactor)
         {
             var dict = new ResourceDictionary();
             foreach (var file in files)
             {
                 var drawingGroup = ConvertFileToDrawingGroup(file, wpfDrawingSettings);
 
-                AddBorder(drawingGroup);
+                AddBorder(drawingGroup, borderSizeFactor);
                 CleanUpSolidColorBrushes(drawingGroup);
 
                 // Zu LeanioIcon Style machen:
@@ -308,8 +308,11 @@ namespace SvgConverter
             return dict;
         }
 
-        private static void AddBorder(DrawingGroup drawingGroup)
+        private static void AddBorder(DrawingGroup drawingGroup, double borderSizeFactor)
         {
+            if(borderSizeFactor <= 0.0001)
+                return;
+
             var geometry = new PathGeometry();
 
             var drawingGroups = new List<DrawingGroup> { drawingGroup.Clone() };
@@ -341,7 +344,7 @@ namespace SvgConverter
                 drawingGroups.Remove(current);
             }
 
-            var border = new GeometryDrawing(null, new (Brushes.White, Math.Max(geometry.Bounds.Size.Width, geometry.Bounds.Size.Height) / 16D), geometry);
+            var border = new GeometryDrawing(null, new (Brushes.White, Math.Max(geometry.Bounds.Size.Width, geometry.Bounds.Size.Height) / 16D * borderSizeFactor), geometry);
 
             if (!drawingGroup.Bounds.Contains(border.Bounds))
             {
