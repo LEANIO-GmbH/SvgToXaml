@@ -284,7 +284,9 @@ namespace SvgConverter
             return drawingElement.Descendants()
                 .SelectMany(d => d.Attributes())
                 .Where(a => a.Name.LocalName is "Brush" or "ForegroundBrush")
-                .Where(a => a.Value.StartsWith("#", StringComparison.InvariantCulture)); //is Color like #FF000000
+                .Where(a => 
+                    a.Value.StartsWith("#", StringComparison.InvariantCulture) ||
+                    a.Value.StartsWith("{StaticResource", StringComparison.InvariantCulture));
         }
 
         private static void AddDrawingImagesToDrawingGroups(XElement rootElement)
@@ -374,7 +376,7 @@ namespace SvgConverter
             }
 
             var borderGroup = new DrawingGroup();
-            borderGroup.SetValue(FrameworkElement.NameProperty, "Border");
+            borderGroup.SetValue(FrameworkElement.NameProperty, "border");
             borderGroup.Children.Insert(0, border);
 
             drawingGroup.Children.Insert(0, borderGroup);
