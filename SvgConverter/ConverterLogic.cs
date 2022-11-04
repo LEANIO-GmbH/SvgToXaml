@@ -116,6 +116,8 @@ namespace SvgConverter
             {
                 style.Attribute("TargetType").Value = leanioIconResKey.NameSpaceName + ":LeanioIcon";
 
+                var key = style.Attribute(ConverterLogic.Nsx + "Key").Value;
+
                 var setterList = style.Elements().Where(element => element.Name.LocalName == "Setter");
                 
                 foreach (var setter in setterList)
@@ -134,7 +136,7 @@ namespace SvgConverter
 
                             //ExtractGeometries(drawingGroup, resKeyInfo);
 
-                            ReplaceBrushesInDrawingGroups(drawingGroup);
+                            ReplaceBrushesInDrawingGroups(drawingGroup, key);
                         }
                     }
                 }
@@ -242,7 +244,17 @@ namespace SvgConverter
             }
         }
 
-        private static void ReplaceBrushesInDrawingGroups(XElement rootElement)
+        private static Dictionary<string, string> resources = new()
+        {
+            { "#00FFFFFF", "#00FFFFFF" }, // ausnahme (canvas ist immmer transparent)
+            { "#FFFCB814", "LeanioPrimaryBrush" },
+            { "#FF32373B", "LeanioGreyBrush" },
+            { "#FFD3D3D3", "LeanioLightGreyBrush" },
+            { "#FFFFFFFF", "LeanioStaticWhiteBrush" },
+            { "#FFEE4B2B", "LeanioRedBrush" },
+        };
+
+        private static void ReplaceBrushesInDrawingGroups(XElement rootElement, string file)
         {
             var key = rootElement.Attribute(ConverterLogic.Nsx + "Name")?.Value.ToLower();
 
@@ -252,11 +264,16 @@ namespace SvgConverter
             {
                 var color = brushAttribute.Value;
 
+                if (ConverterLogic.resources.TryGetValue(color, out var resource))
+                    color = resource.StartsWith("#") ? resource : $"{{StaticResource {resource}}}";
+                else
+                    Console.WriteLine($"Icon {file} besitzt einen unbekannten Farbcode. ({color})");
+
                 brushAttribute.Value = key switch
                 {
                     "border" => $"{{Binding CustomBorderBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
                     "custom" => $"{{Binding CustomBrush, RelativeSource={{RelativeSource AncestorType=leanio:LeanioIcon}}, TargetNullValue={color}}}",
-                    _ => brushAttribute.Value
+                    _ => color
                 };
             }
 
