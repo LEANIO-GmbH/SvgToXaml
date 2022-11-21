@@ -349,7 +349,7 @@ namespace SvgConverter
                         case GeometryDrawing drawing:
                             var geo = drawing.Geometry;
                             geo.Transform = current.Transform?.Clone();
-                            geometry = Geometry.Combine(geometry, geo, GeometryCombineMode.Union, null);
+                            geometry = Geometry.Combine(geometry, geo, GeometryCombineMode.Union, null, 0, ToleranceType.Absolute);
                             break;
 
                         case DrawingGroup dg:
